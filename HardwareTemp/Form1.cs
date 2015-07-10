@@ -64,6 +64,8 @@ namespace HardwareTemp {
                 label13.Hide();
                 label14.Hide();
                 label15.Hide();
+
+                label5.Text = "GPU";
             }
         }
 
