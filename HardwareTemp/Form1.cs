@@ -228,6 +228,10 @@ namespace HardwareTemp {
         private void label20_Click(object sender, EventArgs e) {
             Application.Exit();
         }
+
+        private void label21_Click(object sender, EventArgs e) {
+            this.WindowState = FormWindowState.Minimized;
+        }
                 
     }
 }
