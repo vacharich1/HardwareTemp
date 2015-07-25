@@ -47,6 +47,8 @@
             this.label19 = new System.Windows.Forms.Label();
             this.label20 = new System.Windows.Forms.Label();
             this.label21 = new System.Windows.Forms.Label();
+            this.label22 = new System.Windows.Forms.Label();
+            this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
             this.SuspendLayout();
             // 
             // label1
@@ -308,6 +310,26 @@
             this.label21.Text = "_";
             this.label21.Click += new System.EventHandler(this.label21_Click);
             // 
+            // label22
+            // 
+            this.label22.AutoSize = true;
+            this.label22.BackColor = System.Drawing.Color.Transparent;
+            this.label22.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.label22.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(153)))), ((int)(((byte)(255)))));
+            this.label22.Location = new System.Drawing.Point(479, 4);
+            this.label22.Name = "label22";
+            this.label22.Size = new System.Drawing.Size(17, 19);
+            this.label22.TabIndex = 21;
+            this.label22.Text = "S";
+            this.label22.Click += new System.EventHandler(this.label22_Click);
+            // 
+            // notifyIcon1
+            // 
+            this.notifyIcon1.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon1.Icon")));
+            this.notifyIcon1.Text = "notifyIcon1";
+            this.notifyIcon1.Visible = true;
+            this.notifyIcon1.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon1_MouseDoubleClick);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -315,6 +337,7 @@
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
             this.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("$this.BackgroundImage")));
             this.ClientSize = new System.Drawing.Size(550, 210);
+            this.Controls.Add(this.label22);
             this.Controls.Add(this.label21);
             this.Controls.Add(this.label20);
             this.Controls.Add(this.label19);
@@ -373,6 +396,8 @@
         private System.Windows.Forms.Label label19;
         private System.Windows.Forms.Label label20;
         private System.Windows.Forms.Label label21;
+        private System.Windows.Forms.Label label22;
+        private System.Windows.Forms.NotifyIcon notifyIcon1;
     }
 }
 
