@@ -75,6 +75,7 @@ namespace HardwareTemp {
 
                     //Write General Settings
                     writer.WriteLine("General Settings");
+                    writer.WriteLine("----------------");
                     writer.WriteLine( Write_Parameter( "Number_of_cores", numericUpDown1.Value.ToString() ) );
                     writer.WriteLine( Write_Parameter("TwoGPUs", bool_to_int(checkBox2.Checked).ToString()));
 
@@ -82,6 +83,7 @@ namespace HardwareTemp {
 
                     //Write Arduino Settings
                     writer.WriteLine("Arduino Settings");
+                    writer.WriteLine("----------------");
                     writer.WriteLine( Write_Parameter("Arduino_Enabled", bool_to_int(checkBox1.Checked).ToString()));
                     writer.WriteLine( Write_Parameter( "COM_port", label8.Text ) );
                     writer.WriteLine( Write_Parameter( "Baud_Rate", numericUpDown2.Value.ToString() ) );

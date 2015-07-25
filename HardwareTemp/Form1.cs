@@ -65,6 +65,7 @@ namespace HardwareTemp {
             Update_Values(cpt);
             AvgMinMax();
             Display();
+            Send_Data();
         }
         
         public static void InitComp(Computer cmp) {
@@ -251,42 +252,40 @@ namespace HardwareTemp {
                 Config_Display(twoGPUs);
             }
             else {
-
-                System.Windows.Forms.MessageBox.Show("Please go in the config menu to set the number of cores your computer has.", "First Launch Message");
-
+                System.Windows.Forms.MessageBox.Show("Check out the config menu", "First Launch Message");
                 Reset_Settings();
-
-                using (var stream = new FileStream(current_Path + filename, FileMode.Create)) {
-                    using (var writer = new StreamWriter(stream)) {
-
-                        //Write General Settings
-                        writer.WriteLine("General Settings");
-                        writer.WriteLine( Write_Parameter( "Number_of_cores", numberOfCores.ToString()));
-                        writer.WriteLine( Write_Parameter( "TwoGPUs", bool_to_int(twoGPUs).ToString()));
-
-                        writer.WriteLine();
-
-                        //Write Arduino Settings
-                        writer.WriteLine("Arduino Settings");
-                        writer.WriteLine( Write_Parameter( "Arduino_Enabled", bool_to_int(Arduino_Enabled).ToString()));
-                        writer.WriteLine( Write_Parameter( "COM_port", COM_Port));
-                        writer.WriteLine( Write_Parameter( "Baud_Rate", Baud_Rate.ToString()));
-
-                    }
-                }
             }
         }
 
         public void Reset_Settings() {
 
-            //General
             numberOfCores = 4;
             twoGPUs = false;
 
-            //Arduino
             Arduino_Enabled = false;
             COM_Port = "NullCOM";
             Baud_Rate = 115200;
+
+            using (var stream = new FileStream(current_Path + filename, FileMode.Create)) {
+                using (var writer = new StreamWriter(stream)) {
+
+                    //Write General Settings                        
+                    writer.WriteLine("General Settings");
+                    writer.WriteLine("----------------");
+                    writer.WriteLine(Write_Parameter("Number_of_cores", numberOfCores.ToString()));
+                    writer.WriteLine(Write_Parameter("TwoGPUs", bool_to_int(twoGPUs).ToString()));
+
+                    writer.WriteLine();
+
+                    //Write Arduino Settings
+                    writer.WriteLine("Arduino Settings");
+                    writer.WriteLine("----------------");
+                    writer.WriteLine(Write_Parameter("Arduino_Enabled", bool_to_int(Arduino_Enabled).ToString()));
+                    writer.WriteLine(Write_Parameter("COM_port", COM_Port));
+                    writer.WriteLine(Write_Parameter("Baud_Rate", Baud_Rate.ToString()));
+
+                }
+            }
 
         }
 
@@ -312,12 +311,47 @@ namespace HardwareTemp {
             return (param_name + " = " + "<" + param_data + ">");
         }
 
-        public static void Send_Data() {
+        public void Send_Data() {
+
             if (Arduino_Enabled) {
-                SerialPort curr_port = new SerialPort(COM_Port, Baud_Rate);
-                curr_port.Open();
-                curr_port.Write("data protocol");
-                curr_port.Close();
+
+                try {
+                    // Data Format :
+                    // CPU_Load / CPU_Temp #   GPU1_Load / GPU1_Temp #   !
+                    // or if in two GPUs
+                    // CPU_Load / CPU_Temp #   GPU1_Load / GPU1_Temp #   & GPU2_Load / GPU2_Temp # !
+                    //Example :
+                    //  51/38#32/67#&82/21#!
+
+                    SerialPort curr_port = new SerialPort(COM_Port, Baud_Rate);
+                    curr_port.Open();
+
+                    curr_port.Write(data[0, 0].ToString());
+                    curr_port.Write("/");
+                    curr_port.Write(data[0, 1].ToString());
+                    curr_port.Write("#");
+
+                    curr_port.Write(data[1, 0].ToString());
+                    curr_port.Write("/");
+                    curr_port.Write(data[1, 1].ToString());
+                    curr_port.Write("#");
+
+                    if (twoGPUs) {
+                        curr_port.Write("&");
+
+                        curr_port.Write(data[2, 0].ToString());
+                        curr_port.Write("/");
+                        curr_port.Write(data[2, 1].ToString());
+                        curr_port.Write("#");
+                    }
+
+                    curr_port.Write("!");
+                    curr_port.Close();
+                }
+                catch {
+                    Reset_Settings();
+                    //Load_Config();                    
+                }
             }
         }
 
@@ -357,11 +391,13 @@ namespace HardwareTemp {
 
         //Events
 
-        private static void DataReceivedHandler(object sender, SerialDataReceivedEventArgs e) {
+        private void DataReceivedHandler(object sender, SerialDataReceivedEventArgs e) {
 
             SerialPort sp = (SerialPort)sender;
             byte[] buffer = new byte[sp.BytesToRead];
             sp.Read(buffer, 0, sp.BytesToRead);
+
+            //Send_Data();
 
             if (buffer[0] == 64 && buffer[1] == 80 && buffer[2] == 67) { //If data received = "@PC", then send data
                 Send_Data();
