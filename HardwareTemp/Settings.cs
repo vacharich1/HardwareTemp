@@ -34,6 +34,8 @@ namespace HardwareTemp {
 
 
 
+        //Main methods
+
         public void Read_Settings() {
 
             if (!File.Exists(current_Path + filename)) {
@@ -44,16 +46,15 @@ namespace HardwareTemp {
                 using (var reader = new StreamReader(stream)) {
 
                     try {
-                        //General Settings
-                        reader.ReadLine();
-                        numericUpDown1.Value = parse_int( reader.ReadLine() );
-                        checkBox2.Checked = checkbox_read( parse_int( reader.ReadLine() ));
 
-                        //Arduino Settings
-                        reader.ReadLine();
-                        checkBox1.Checked = checkbox_read( parse_int( reader.ReadLine() ));
-                        label8.Text = reader.ReadLine();
-                        numericUpDown2.Value = parse_int( reader.ReadLine() );
+                        string work = reader.ReadToEnd();
+
+                        numericUpDown1.Value = parse_int(Find_Parameter(work, "Number_of_cores"));
+                        checkBox2.Checked = int_to_bool(parse_int(Find_Parameter(work, "TwoGPUs")));
+
+                        checkBox1.Checked = int_to_bool(parse_int(Find_Parameter(work, "Arduino_Enabled")));
+                        label8.Text = Find_Parameter(work, "COM_port");
+                        numericUpDown2.Value = parse_int(Find_Parameter(work, "Baud_Rate"));
 
                     }
                     catch {
@@ -74,13 +75,16 @@ namespace HardwareTemp {
 
                     //Write General Settings
                     writer.WriteLine("General Settings");
-                    writer.WriteLine(numericUpDown1.Value.ToString());
-                    writer.WriteLine(checkbox_write(checkBox2.Checked));
+                    writer.WriteLine( Write_Parameter( "Number_of_cores", numericUpDown1.Value.ToString() ) );
+                    writer.WriteLine( Write_Parameter("TwoGPUs", bool_to_int(checkBox2.Checked).ToString()));
+
+                    writer.WriteLine();
+
                     //Write Arduino Settings
                     writer.WriteLine("Arduino Settings");
-                    writer.WriteLine(checkbox_write(checkBox1.Checked));
-                    writer.WriteLine(label8.Text);
-                    writer.WriteLine(numericUpDown2.Value.ToString());
+                    writer.WriteLine( Write_Parameter("Arduino_Enabled", bool_to_int(checkBox1.Checked).ToString()));
+                    writer.WriteLine( Write_Parameter( "COM_port", label8.Text ) );
+                    writer.WriteLine( Write_Parameter( "Baud_Rate", numericUpDown2.Value.ToString() ) );
 
                 }
             }
@@ -101,6 +105,31 @@ namespace HardwareTemp {
 
         }
 
+        public static string Find_Parameter(string input, string parameter_name) {
+
+            int param_index = input.IndexOf(parameter_name);
+
+            while (input[param_index] != '<') {
+                param_index++;
+            }
+            param_index++;
+
+            string ret = "";
+            while (input[param_index] != '>') {
+                ret += input[param_index];
+                param_index++;
+            }
+
+            return ret;
+        }
+
+        public static string Write_Parameter(string param_name, string param_data) {
+            return (param_name + " = " + "<" + param_data + ">");
+        }
+        
+
+
+        //Secondary methods
 
         public void ScanCOM() {
             listBox1.Items.Clear();
@@ -120,7 +149,7 @@ namespace HardwareTemp {
             return 0;
         }
 
-        public int checkbox_write(bool enabled) {
+        public int bool_to_int(bool enabled) {
             if (enabled) {
                 return 1;
             }
@@ -129,7 +158,7 @@ namespace HardwareTemp {
             }
         }
 
-        public bool checkbox_read(int value) {
+        public bool int_to_bool(int value) {
             if (value == 0) {
                 return false;
             }
@@ -137,8 +166,10 @@ namespace HardwareTemp {
                 return true;
             }
         }
+        
 
 
+        //Events
 
         private void button1_Click(object sender, EventArgs e) {
             Write_Settings();

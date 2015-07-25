@@ -22,16 +22,16 @@ namespace HardwareTemp {
 
 
         // Configuration
-        public static bool twoGPUs = true;
-        public static int numberOfCores = 4;
-        //End of configuration
+        public static bool twoGPUs = false;
+        public static int numberOfCores = Environment.ProcessorCount;
+
 
         //Serial Configuration
         public static bool Arduino_Enabled = false;
         public static string COM_Port = "NullCOM";
         public static int Baud_Rate = 115200;
-        //End of Serial configuration
-        
+
+
         //Configuration File
         string current_Path = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
         string filename = "\\settings.ini";
@@ -231,16 +231,15 @@ namespace HardwareTemp {
                     using (var reader = new StreamReader(stream)) {
 
                         try {
-                            //General Settings
-                            reader.ReadLine();
-                            numberOfCores = parse_int(reader.ReadLine());
-                            twoGPUs = int_to_bool(parse_int(reader.ReadLine()));
 
-                            //Arduino Settings
-                            reader.ReadLine();
-                            Arduino_Enabled = int_to_bool(parse_int(reader.ReadLine()));
-                            COM_Port = reader.ReadLine();
-                            Baud_Rate = parse_int(reader.ReadLine());
+                            string work = reader.ReadToEnd();
+
+                            numberOfCores = parse_int( Find_Parameter( work, "Number_of_cores"));
+                            twoGPUs = int_to_bool(parse_int( Find_Parameter( work, "TwoGPUs")));
+
+                            Arduino_Enabled = int_to_bool(parse_int( Find_Parameter( work, "Arduino_Enabled")));
+                            COM_Port = Find_Parameter( work, "COM_port");
+                            Baud_Rate = parse_int( Find_Parameter(work, "Baud_Rate"));
 
                         }
                         catch {
@@ -262,17 +261,55 @@ namespace HardwareTemp {
 
                         //Write General Settings
                         writer.WriteLine("General Settings");
-                        writer.WriteLine(numberOfCores.ToString());
-                        writer.WriteLine(bool_to_int(twoGPUs).ToString());
+                        writer.WriteLine( Write_Parameter( "Number_of_cores", numberOfCores.ToString()));
+                        writer.WriteLine( Write_Parameter( "TwoGPUs", bool_to_int(twoGPUs).ToString()));
+
+                        writer.WriteLine();
+
                         //Write Arduino Settings
                         writer.WriteLine("Arduino Settings");
-                        writer.WriteLine(bool_to_int(Arduino_Enabled));
-                        writer.WriteLine(COM_Port);
-                        writer.WriteLine(Baud_Rate.ToString());
+                        writer.WriteLine( Write_Parameter( "Arduino_Enabled", bool_to_int(Arduino_Enabled).ToString()));
+                        writer.WriteLine( Write_Parameter( "COM_port", COM_Port));
+                        writer.WriteLine( Write_Parameter( "Baud_Rate", Baud_Rate.ToString()));
 
                     }
                 }
             }
+        }
+
+        public void Reset_Settings() {
+
+            //General
+            numberOfCores = 4;
+            twoGPUs = false;
+
+            //Arduino
+            Arduino_Enabled = false;
+            COM_Port = "NullCOM";
+            Baud_Rate = 115200;
+
+        }
+
+        public static string Find_Parameter(string input, string parameter_name) {
+
+            int param_index = input.IndexOf(parameter_name);
+
+            while (input[param_index] != '<') {
+                param_index++;
+            }
+            param_index++;
+
+            string ret = "";
+            while (input[param_index] != '>') {
+                ret += input[param_index];
+                param_index++;
+            }
+
+            return ret;
+        }
+        
+        public static string Write_Parameter(string param_name, string param_data) {
+            return (param_name + " = " + "<" + param_data + ">");
         }
 
         public static void Send_Data() {
@@ -283,6 +320,10 @@ namespace HardwareTemp {
                 curr_port.Close();
             }
         }
+
+
+
+        //Secondary methods
 
         public bool int_to_bool(int value) {
             if (value == 0) {
@@ -311,20 +352,6 @@ namespace HardwareTemp {
             }
             return 0;
         }
-
-        public void Reset_Settings() {
-
-            //General
-            numberOfCores = 4;
-            twoGPUs = false;
-
-            //Arduino
-            Arduino_Enabled = false;
-            COM_Port = "NullCOM";
-            Baud_Rate = 115200;
-
-        }
-
 
 
 
