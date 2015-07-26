@@ -51,7 +51,6 @@ namespace HardwareTemp {
 
         private void Form1_Load(object sender, EventArgs e) {
             Load_Config();
-            Config_Display(twoGPUs);
             Pop_Data();            
             InitComp(cpt);
             timer1.Start();
@@ -244,7 +243,7 @@ namespace HardwareTemp {
 
                         }
                         catch {
-                            Reset_Settings();
+                            Reset_Settings(4, false, false, "NullCOM", 115200);
                         }
                     }
                 }
@@ -253,18 +252,18 @@ namespace HardwareTemp {
             }
             else {
                 System.Windows.Forms.MessageBox.Show("Check out the config menu", "First Launch Message");
-                Reset_Settings();
+                Reset_Settings(4, false, false, "NullCOM", 115200);
             }
         }
 
-        public void Reset_Settings() {
+        public void Reset_Settings(int cores, bool GPUs, bool arduino, string port, int baud) {
 
-            numberOfCores = 4;
-            twoGPUs = false;
+            numberOfCores = cores;
+            twoGPUs = GPUs;
 
-            Arduino_Enabled = false;
-            COM_Port = "NullCOM";
-            Baud_Rate = 115200;
+            Arduino_Enabled = arduino;
+            COM_Port = port;
+            Baud_Rate = baud;
 
             using (var stream = new FileStream(current_Path + filename, FileMode.Create)) {
                 using (var writer = new StreamWriter(stream)) {
@@ -286,6 +285,8 @@ namespace HardwareTemp {
 
                 }
             }
+
+            Config_Display(GPUs);
 
         }
 
@@ -316,6 +317,7 @@ namespace HardwareTemp {
             if (Arduino_Enabled) {
 
                 try {
+
                     // Data Format :
                     // CPU_Load / CPU_Temp #   GPU1_Load / GPU1_Temp #   !
                     // or if in two GPUs
@@ -349,8 +351,8 @@ namespace HardwareTemp {
                     curr_port.Close();
                 }
                 catch {
-                    Reset_Settings();
-                    //Load_Config();                    
+                    Reset_Settings(numberOfCores, twoGPUs, false, COM_Port, Baud_Rate); //Just disable Arduino link if it fails to send data through Serial port
+                    Load_Config();
                 }
             }
         }
@@ -391,6 +393,7 @@ namespace HardwareTemp {
 
         //Events
 
+        /*
         private void DataReceivedHandler(object sender, SerialDataReceivedEventArgs e) {
 
             SerialPort sp = (SerialPort)sender;
@@ -404,6 +407,7 @@ namespace HardwareTemp {
             }
 
         }
+        */
 
         private void timer1_Tick(object sender, EventArgs e) {
             MainLoop();

@@ -27,9 +27,13 @@ void setup() {
 
 void loop() {
 
-  delay(1000);
+  delay(100);
   
   Serial.print("@PC");
+  
+  while (Serial.available() == 0) {
+    delay(10);
+  }
 
   if ( Serial.available() ) {
     text = ""; //Flush the old messsage
