@@ -24,9 +24,11 @@ namespace HardwareTemp {
         // Configuration
         public static bool twoGPUs = false;
         public static int numberOfCores = Environment.ProcessorCount;
+        public int timer_interval = 1000;
 
 
         //Serial Configuration
+        public SerialPort serial_port;
         public static bool Arduino_Enabled = false;
         public static string COM_Port = "NullCOM";
         public static int Baud_Rate = 115200;
@@ -37,11 +39,11 @@ namespace HardwareTemp {
         string filename = "\\settings.ini";
 
 
+        DateTime last_sent;
         Computer cpt = new Computer();
-
         public static int[,] data;
-
         bool mouseDown;
+
 
 
 
@@ -50,11 +52,12 @@ namespace HardwareTemp {
         }
 
         private void Form1_Load(object sender, EventArgs e) {
-            Load_Config();
-            Pop_Data();            
+            Load_Config(true);
+            Pop_Data();
             InitComp(cpt);
             timer1.Start();
         }
+
 
 
 
@@ -64,9 +67,10 @@ namespace HardwareTemp {
             Update_Values(cpt);
             AvgMinMax();
             Display();
-            Send_Data();
+            //Send_Data();
+            Check_Dead_Serial();
         }
-        
+
         public static void InitComp(Computer cmp) {
             cmp.Open();
             cmp.CPUEnabled = true;
@@ -75,7 +79,7 @@ namespace HardwareTemp {
 
         public void Pop_Data() {
 
-            int[,] tmp = new int[3,4];
+            int[,] tmp = new int[3, 4];
 
             for (int y = 0; y < 3; y++)
                 for (int x = 0; x < 4; x++)
@@ -91,10 +95,10 @@ namespace HardwareTemp {
 
         public static void Update_Values(Computer cmp) {
 
-            data[0,1] = 0;
-            data[0,0] = 0;
+            data[0, 1] = 0;
+            data[0, 0] = 0;
             int ct = 0;
-            
+
             foreach (var hardware in cmp.Hardware) {
 
                 hardware.Update();
@@ -115,7 +119,7 @@ namespace HardwareTemp {
                             data[0, 1] += (int)sensor.Value;
                         }
                         if (sensor.SensorType == SensorType.Load && sensor.Name != "CPU Total" && sensor.Value != null) {
-                            data[0,0] += (int)sensor.Value;
+                            data[0, 0] += (int)sensor.Value;
                         }
                     }
                     //GPU Temps & Loads
@@ -143,7 +147,7 @@ namespace HardwareTemp {
                         }
 
                     }
-                    
+
                 }
             }
 
@@ -154,7 +158,7 @@ namespace HardwareTemp {
 
             //CPU Average, divided by 4 for a 4-cores CPU
             data[0, 1] = data[0, 1] / numberOfCores;
-            data[0,0] = data[0,0] / numberOfCores;
+            data[0, 0] = data[0, 0] / numberOfCores;
 
             //MinMax CPU
             if (data[0, 1] < data[0, 2])
@@ -165,19 +169,19 @@ namespace HardwareTemp {
             //MinMax GPU1
             if (data[1, 1] < data[1, 2])
                 data[1, 2] = data[1, 1];
-            if (data[1, 1] > data[1,3])
+            if (data[1, 1] > data[1, 3])
                 data[1, 3] = data[1, 1];
 
             //MinMax GPU2
             if (twoGPUs) {
                 if (data[2, 1] < data[2, 2])
                     data[2, 2] = data[2, 1];
-                if (data[2, 1] > data[2,3])
+                if (data[2, 1] > data[2, 3])
                     data[2, 3] = data[2, 1];
             }
         }
 
-        public void Display() {           
+        public void Display() {
 
             //CPU
             label7.Text = data[0, 1].ToString() + " °C";
@@ -197,7 +201,7 @@ namespace HardwareTemp {
             }
 
             //Loads
-            label17.Text = data[0,0].ToString() + " %";
+            label17.Text = data[0, 0].ToString() + " %";
             label18.Text = data[1, 0].ToString() + " %";
             label19.Text = data[2, 0].ToString() + " %";
         }
@@ -223,7 +227,13 @@ namespace HardwareTemp {
             }
         }
 
-        public void Load_Config() {
+        public void Load_Config(bool first_start) {
+
+            //Close serial port to refresh it
+            if (Arduino_Enabled) {
+                serial_port.Close();
+            }
+
 
             if (File.Exists(current_Path + filename)) {
 
@@ -234,32 +244,51 @@ namespace HardwareTemp {
 
                             string work = reader.ReadToEnd();
 
-                            numberOfCores = parse_int( Find_Parameter( work, "Number_of_cores"));
-                            twoGPUs = int_to_bool(parse_int( Find_Parameter( work, "TwoGPUs")));
+                            numberOfCores = parse_int(Find_Parameter(work, "Number_of_cores"));
+                            twoGPUs = int_to_bool(parse_int(Find_Parameter(work, "TwoGPUs")));
+                            timer_interval = parse_int(Find_Parameter(work, "Refresh_Rate"));
 
-                            Arduino_Enabled = int_to_bool(parse_int( Find_Parameter( work, "Arduino_Enabled")));
-                            COM_Port = Find_Parameter( work, "COM_port");
-                            Baud_Rate = parse_int( Find_Parameter(work, "Baud_Rate"));
+                            Arduino_Enabled = int_to_bool(parse_int(Find_Parameter(work, "Arduino_Enabled")));
+                            COM_Port = Find_Parameter(work, "COM_port");
+                            Baud_Rate = parse_int(Find_Parameter(work, "Baud_Rate"));
+
+                            if (Arduino_Enabled) { //Create new port if Arduino Enabled
+                                serial_port = new SerialPort(COM_Port, Baud_Rate);
+                                serial_port.Open();
+                                serial_port.DataReceived += new SerialDataReceivedEventHandler(Serial_Received);
+                                //Send_Data();
+                            }
+
+                            timer1.Stop();
+                            timer1.Interval = timer_interval;
+
+                            if (!first_start) {
+                                timer1.Start();
+                            }
+
 
                         }
                         catch {
-                            Reset_Settings(4, false, false, "NullCOM", 115200);
+                            Reset_Settings(4, false, 1000, false, "NullCOM", 115200);
                         }
                     }
                 }
                 //Reset Display when Config changed
                 Config_Display(twoGPUs);
+
+
             }
             else {
                 System.Windows.Forms.MessageBox.Show("Check out the config menu", "First Launch Message");
-                Reset_Settings(4, false, false, "NullCOM", 115200);
+                Reset_Settings(4, false, 1000, false, "NullCOM", 115200);
             }
         }
 
-        public void Reset_Settings(int cores, bool GPUs, bool arduino, string port, int baud) {
+        public void Reset_Settings(int cores, bool GPUs, int refresh, bool arduino, string port, int baud) {
 
             numberOfCores = cores;
             twoGPUs = GPUs;
+            timer_interval = 1000;
 
             Arduino_Enabled = arduino;
             COM_Port = port;
@@ -273,6 +302,7 @@ namespace HardwareTemp {
                     writer.WriteLine("----------------");
                     writer.WriteLine(Write_Parameter("Number_of_cores", numberOfCores.ToString()));
                     writer.WriteLine(Write_Parameter("TwoGPUs", bool_to_int(twoGPUs).ToString()));
+                    writer.WriteLine(Write_Parameter("Refresh_Rate", timer_interval.ToString()));
 
                     writer.WriteLine();
 
@@ -307,7 +337,7 @@ namespace HardwareTemp {
 
             return ret;
         }
-        
+
         public static string Write_Parameter(string param_name, string param_data) {
             return (param_name + " = " + "<" + param_data + ">");
         }
@@ -318,6 +348,8 @@ namespace HardwareTemp {
 
                 try {
 
+                    last_sent = DateTime.Now;
+
                     // Data Format :
                     // CPU_Load / CPU_Temp #   GPU1_Load / GPU1_Temp #   !
                     // or if in two GPUs
@@ -325,37 +357,47 @@ namespace HardwareTemp {
                     //Example :
                     //  51/38#32/67#&82/21#!
 
-                    SerialPort curr_port = new SerialPort(COM_Port, Baud_Rate);
-                    curr_port.Open();
+                    serial_port.Write(data[0, 0].ToString());
+                    serial_port.Write("/");
+                    serial_port.Write(data[0, 1].ToString());
+                    serial_port.Write("#");
 
-                    curr_port.Write(data[0, 0].ToString());
-                    curr_port.Write("/");
-                    curr_port.Write(data[0, 1].ToString());
-                    curr_port.Write("#");
-
-                    curr_port.Write(data[1, 0].ToString());
-                    curr_port.Write("/");
-                    curr_port.Write(data[1, 1].ToString());
-                    curr_port.Write("#");
+                    serial_port.Write(data[1, 0].ToString());
+                    serial_port.Write("/");
+                    serial_port.Write(data[1, 1].ToString());
+                    serial_port.Write("#");
 
                     if (twoGPUs) {
-                        curr_port.Write("&");
+                        serial_port.Write("&");
 
-                        curr_port.Write(data[2, 0].ToString());
-                        curr_port.Write("/");
-                        curr_port.Write(data[2, 1].ToString());
-                        curr_port.Write("#");
+                        serial_port.Write(data[2, 0].ToString());
+                        serial_port.Write("/");
+                        serial_port.Write(data[2, 1].ToString());
+                        serial_port.Write("#");
                     }
 
-                    curr_port.Write("!");
-                    curr_port.Close();
+                    serial_port.Write("!");
+
                 }
                 catch {
-                    Reset_Settings(numberOfCores, twoGPUs, false, COM_Port, Baud_Rate); //Just disable Arduino link if it fails to send data through Serial port
-                    Load_Config();
+                    Reset_Settings(numberOfCores, twoGPUs, timer_interval, false, COM_Port, Baud_Rate); //Just disable Arduino link if it fails to send data through Serial port
+                    //Load_Config(false);
                 }
             }
         }
+
+        public void Check_Dead_Serial() {
+
+            if (Arduino_Enabled) {
+
+                last_sent.AddSeconds(15);
+
+                if (DateTime.Now > last_sent) {
+                    Send_Data();
+                }
+            }
+        }
+
 
 
 
@@ -391,23 +433,16 @@ namespace HardwareTemp {
 
 
 
+
         //Events
 
-        /*
-        private void DataReceivedHandler(object sender, SerialDataReceivedEventArgs e) {
+        public void Serial_Received(object sender, SerialDataReceivedEventArgs e) {
 
-            SerialPort sp = (SerialPort)sender;
-            byte[] buffer = new byte[sp.BytesToRead];
-            sp.Read(buffer, 0, sp.BytesToRead);
+            if (Arduino_Enabled && serial_port != null) { //If data received = "@PC", then send data
 
-            //Send_Data();
-
-            if (buffer[0] == 64 && buffer[1] == 80 && buffer[2] == 67) { //If data received = "@PC", then send data
                 Send_Data();
             }
-
         }
-        */
 
         private void timer1_Tick(object sender, EventArgs e) {
             MainLoop();
@@ -434,7 +469,7 @@ namespace HardwareTemp {
         private void label21_Click(object sender, EventArgs e) {
             this.WindowState = FormWindowState.Minimized;
             notifyIcon1.Visible = true;
-            this.ShowInTaskbar = false;            
+            this.ShowInTaskbar = false;
         }
 
         private void label22_Click(object sender, EventArgs e) {
@@ -447,9 +482,9 @@ namespace HardwareTemp {
             notifyIcon1.Visible = false;
             this.ShowInTaskbar = true;
         }
-            
 
- 
+
+
 
     }
 }

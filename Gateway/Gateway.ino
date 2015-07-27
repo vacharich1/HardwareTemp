@@ -3,7 +3,7 @@
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 
 /* Variables */
-String text = "Message";
+String text = "HardwareMonitor";
 char tempchar;
 bool changed;
 bool twoGPUs = false;
@@ -23,21 +23,22 @@ void setup() {
   Serial.begin(115200);
   lcd.begin(16, 2);
   lcd.print(text);
+  delay(1000);
 }
 
 void loop() {
 
-  delay(100);
+  delay(500);
   
   Serial.print("@PC");
   
   while (Serial.available() == 0) {
-    delay(10);
+    delay(100);
   }
 
-  if ( Serial.available() ) {
+  if ( Serial.available()) {
     text = ""; //Flush the old messsage
-    while ( Serial.available() ) {
+    while ( Serial.available()) {
       tempchar = Serial.read();
       text.concat(tempchar); //Add each character to the text string
     }

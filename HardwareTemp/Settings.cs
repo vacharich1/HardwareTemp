@@ -51,6 +51,7 @@ namespace HardwareTemp {
 
                         numericUpDown1.Value = parse_int(Find_Parameter(work, "Number_of_cores"));
                         checkBox2.Checked = int_to_bool(parse_int(Find_Parameter(work, "TwoGPUs")));
+                        numericUpDown3.Value = parse_int(Find_Parameter(work, "Refresh_Rate"));
 
                         checkBox1.Checked = int_to_bool(parse_int(Find_Parameter(work, "Arduino_Enabled")));
                         label8.Text = Find_Parameter(work, "COM_port");
@@ -66,7 +67,7 @@ namespace HardwareTemp {
 
         public void Write_Settings() {
 
-            if(!File.Exists(current_Path + filename)) {
+            if (!File.Exists(current_Path + filename)) {
                 File.Create(current_Path + filename);
             }
 
@@ -76,17 +77,18 @@ namespace HardwareTemp {
                     //Write General Settings
                     writer.WriteLine("General Settings");
                     writer.WriteLine("----------------");
-                    writer.WriteLine( Write_Parameter( "Number_of_cores", numericUpDown1.Value.ToString() ) );
-                    writer.WriteLine( Write_Parameter("TwoGPUs", bool_to_int(checkBox2.Checked).ToString()));
+                    writer.WriteLine(Write_Parameter("Number_of_cores", numericUpDown1.Value.ToString()));
+                    writer.WriteLine(Write_Parameter("TwoGPUs", bool_to_int(checkBox2.Checked).ToString()));
+                    writer.WriteLine(Write_Parameter("Refresh_Rate", numericUpDown3.Value.ToString()));
 
                     writer.WriteLine();
 
                     //Write Arduino Settings
                     writer.WriteLine("Arduino Settings");
                     writer.WriteLine("----------------");
-                    writer.WriteLine( Write_Parameter("Arduino_Enabled", bool_to_int(checkBox1.Checked).ToString()));
-                    writer.WriteLine( Write_Parameter( "COM_port", label8.Text ) );
-                    writer.WriteLine( Write_Parameter( "Baud_Rate", numericUpDown2.Value.ToString() ) );
+                    writer.WriteLine(Write_Parameter("Arduino_Enabled", bool_to_int(checkBox1.Checked).ToString()));
+                    writer.WriteLine(Write_Parameter("COM_port", label8.Text));
+                    writer.WriteLine(Write_Parameter("Baud_Rate", numericUpDown2.Value.ToString()));
 
                 }
             }
@@ -99,6 +101,7 @@ namespace HardwareTemp {
             //General Settings
             numericUpDown1.Value = 4;
             checkBox2.Checked = false;
+            numericUpDown3.Value = 1000;
 
             //Arduino Settings
             checkBox1.Checked = false;
@@ -128,7 +131,7 @@ namespace HardwareTemp {
         public static string Write_Parameter(string param_name, string param_data) {
             return (param_name + " = " + "<" + param_data + ">");
         }
-        
+
 
 
         //Secondary methods
@@ -168,14 +171,14 @@ namespace HardwareTemp {
                 return true;
             }
         }
-        
+
 
 
         //Events
 
         private void button1_Click(object sender, EventArgs e) {
             Write_Settings();
-            form_parent.Load_Config();
+            form_parent.Load_Config(false);
         }
 
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e) {
