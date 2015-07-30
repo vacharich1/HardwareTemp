@@ -7,7 +7,7 @@ It is based on the Open Hardware Monitor library for .net languages.
 ### Arduino
 An arduino sketch is included to display all the HardwareTemp infos on a 16*2 lcd screen.
 
-Just upload the sketch to the arduino, connect it to the computer and select the COM port in the HardwareTemp settings.
+Just upload the sketch to the arduino in the "Gateway" folder, connect it to the computer and select the COM port in the HardwareTemp settings.
 
 
 
