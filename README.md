@@ -11,7 +11,9 @@ Just upload the sketch to the arduino, connect it to the computer and select the
 
 
 
-###### Troubleshooting
+
+
+##### Troubleshooting
 This is just the C# project. To use it you will have to compile it through Visual Studio.
 
 If you have any problem with the software, just delete the "settings.ini" file to reset to software.
